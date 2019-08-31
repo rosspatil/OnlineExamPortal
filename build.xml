@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="Online_Exam_Pattern" default="build-and-deploy" basedir=".">
+	<property file="build.properties" />	
+	<property name="war-file-name" value="${project-name}.war" />
+	<property name="source-directory" value="src" />
+	<property name="build-directory" value="build" />
+	<property name="web-directory" value="WebContent" />
+	<property name="classes-directory" value="${web-directory}/WEB-INF/classes" />	
+	<property name="externaljars" value="${web-directory}/WEB-INF/lib" />
+	<property name="web-xml-file" value="${web-directory}/WEB-INF/web.xml" />
+	<property name="java-compiled" value="${build-directory}/java-compiled" />
+	<property name="tomcatbin"
+			location="${tomcat-dir}/bin" />
+
+    <path id="java.classpath">
+		<fileset dir="${externaljars}">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="${tomcat-dir}/lib">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<taskdef name="start" classpathref="java.classpath" classname="org.apache.catalina.ant.StartTask" />
+	<taskdef name="stop" classpathref="java.classpath" classname="org.apache.catalina.ant.StopTask" />
+	<taskdef name="deploy" classpathref="java.classpath" classname="org.apache.catalina.ant.DeployTask" />
+	<taskdef name="undeploy" classpathref="java.classpath" classname="org.apache.catalina.ant.UndeployTask" />
+
+	<target name="stop" description="stop application in tomcat">
+		<stop url="${tomcat-manager-url}" username="${tomcat-manager-username}"
+			password="${tomcat-manager-password}" path="/${project-name}" />
+	</target>
+
+	<target name="start" description="start application in tomcat">
+		<start url="${tomcat-manager-url}" username="${tomcat-manager-username}"
+			password="${tomcat-manager-password}" path="/${project-name}" />
+	</target>
+	
+	<target name="undeploy" description="undeploy from tomcat">
+		<undeploy 
+			failonerror="no"
+			url="${tomcat-manager-url}"
+			username="${tomcat-manager-username}"
+			password="${tomcat-manager-password}"
+			path="/${project-name}"
+		/>
+	</target>
+	
+	<target name="deploy" description="deploy to tomcat">
+		<echo>deploying from client</echo>
+		<deploy 
+			url="${tomcat-manager-url}"
+			username="${tomcat-manager-username}"
+			password="${tomcat-manager-password}"
+			path="/${project-name}"
+			war="file:${build-directory}/${war-file-name}"
+		/>
+	</target>
+	
+	<target name="compile" depends="" description="compile the source ">
+		
+		<mkdir dir="${build-directory}" />
+			<mkdir dir="${java-compiled}" />
+			<javac srcdir="${source-directory}" destdir="${java-compiled}">
+				<classpath refid="java.classpath" />
+			</javac>
+		</target>
+	
+	<target name="starttomcat" depends="">
+			<exec executable="${tomcatbin}/startup.bat"/>
+		</target>
+	<target name="war" depends="compile">
+		
+		<delete file="${build-directory}/${war-file-name}" />
+		<war warfile="${build-directory}/${war-file-name}" webxml="${web-xml-file}">
+			<classes dir="${java-compiled}" />
+			<fileset dir="${web-directory}">
+				<exclude name="WEB-INF/web.xml" />
+			</fileset>
+			<fileset dir="${source-directory}">
+				<include name="**/*.*" />
+			</fileset>
+			<fileset dir="WebContent">
+				<include name="**/*.*" />
+			</fileset>
+			<manifest>
+				<attribute name="Built-By" value="${builder}" />
+				<attribute name="Built-On" value="${build-info.current-date}" />
+				<attribute name="Built-At" value="${build-info.current-time}" />
+			</manifest>
+		</war>
+	</target>
+	
+	<target name="build-and-deploy" depends="compile,war,undeploy,deploy,start" />
+	
+</project>
